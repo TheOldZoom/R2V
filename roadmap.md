@@ -9,7 +9,7 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 - [x] Add configuration system
 - [x] Add environment variable handling
 - [x] Add logging
-- [ ] Add FFmpeg integration
+- [x] Add FFmpeg integration
 - [ ] Create video rendering module
 - [ ] Add a test background video
 - [ ] Render a basic `9:16` MP4
