@@ -20,13 +20,15 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ## Phase 2 — Video Pipeline
 
-- [ ] Add audio support
-- [ ] Add background video handling
-- [ ] Add video trimming
-- [ ] Add video cropping/scaling
-- [ ] Add audio/video synchronization
-- [ ] Add basic video effects
-- [ ] Add video metadata
+- [x] Add audio input support
+- [x] Add background video support
+- [x] Add video trimming
+- [x] Add video cropping and scaling
+- [x] Add audio/video synchronization
+- [x] Add video duration detection
+- [x] Add video metadata
+- [x] Add render error handling
+- [x] Add render progress logging
 
 **Goal:** Build a reusable video renderer that can combine different media sources.
 

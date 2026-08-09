@@ -9,7 +9,10 @@ const renderer = new VideoRenderer(ffmpeg);
 
 logger.info("Starting Video Render");
 
-await renderer.render({
-  input: "input.mp4",
+const metadata = await renderer.render({
+  backgroundVideo: "input.mp4",
+  audio: "narration.mp3",
   output: "output/video.mp4",
 });
+
+logger.info({ metadata }, "Done");
