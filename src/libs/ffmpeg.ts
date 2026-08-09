@@ -1,4 +1,6 @@
 import { logger } from "./logger";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 
 export interface FFmpegOptions {
   input: string;
@@ -14,6 +16,9 @@ export class FFmpeg {
   }
 
   async run(options: FFmpegOptions): Promise<void> {
+    await mkdir(dirname(options.output), {
+      recursive: true,
+    });
     const args = [
       "-y",
       "-i",
