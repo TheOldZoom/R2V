@@ -29,15 +29,33 @@ export class FFmpeg {
 
   constructor(executable = "ffmpeg") {
     this.executable = executable;
+
+    logger.debug({ executable }, "FFmpeg instance created");
   }
 
   async run(options: FFmpegOptions): Promise<void> {
+    const startedAt = Date.now();
+
+    logger.debug(
+      {
+        inputCount: options.inputs.length,
+        output: options.output,
+        totalDurationSeconds: options.totalDurationSeconds,
+      },
+      "FFmpeg.run called",
+    );
+
     if (options.inputs.length === 0) {
       throw new Error("FFmpeg.run requires at least one input");
     }
 
     for (const input of options.inputs) {
       const exists = await Bun.file(input.path).exists();
+
+      logger.debug(
+        { path: input.path, exists },
+        "Checked FFmpeg input existence",
+      );
 
       if (!exists) {
         throw new Error(`FFmpeg input not found: ${input.path}`);
@@ -47,6 +65,11 @@ export class FFmpeg {
     await mkdir(dirname(options.output), {
       recursive: true,
     });
+
+    logger.debug(
+      { dir: dirname(options.output) },
+      "Ensured FFmpeg output directory exists",
+    );
 
     const inputArgs = options.inputs.flatMap((input) => {
       const flags: string[] = [];
@@ -91,6 +114,8 @@ export class FFmpeg {
       stderr: "pipe",
     });
 
+    logger.debug({ pid: process.pid }, "FFmpeg process spawned");
+
     const stderrPromise = new Response(process.stderr).text();
 
     if (options.onProgress) {
@@ -103,6 +128,11 @@ export class FFmpeg {
 
     const stderr = await stderrPromise;
     const exitCode = await process.exited;
+
+    logger.debug(
+      { exitCode, durationMs: Date.now() - startedAt },
+      "FFmpeg process exited",
+    );
 
     if (exitCode !== 0) {
       logger.error(
@@ -118,7 +148,10 @@ export class FFmpeg {
       );
     }
 
-    logger.debug("FFmpeg process completed");
+    logger.debug(
+      { output: options.output, totalMs: Date.now() - startedAt },
+      "FFmpeg process completed",
+    );
   }
 
   private async readProgress(
@@ -130,6 +163,9 @@ export class FFmpeg {
     const decoder = new TextDecoder();
     let buffer = "";
     let fields: Record<string, string> = {};
+    let updateCount = 0;
+
+    logger.debug({ totalDurationSeconds }, "Starting FFmpeg progress reader");
 
     try {
       while (true) {
@@ -163,6 +199,12 @@ export class FFmpeg {
                   )
                 : null;
 
+            updateCount += 1;
+            logger.debug(
+              { progress, percent, updateCount },
+              "FFmpeg progress update",
+            );
+
             onProgress(progress, percent);
             fields = {};
           }
@@ -170,6 +212,7 @@ export class FFmpeg {
       }
     } finally {
       reader.releaseLock();
+      logger.debug({ updateCount }, "FFmpeg progress reader finished");
     }
   }
 }

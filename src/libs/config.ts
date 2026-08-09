@@ -2,14 +2,10 @@ import { logger } from "./logger";
 
 export enum LLMProvider {
   Gemini = "gemini",
-  Groq = "groq",
-  OpenRouter = "openrouter",
-  Ollama = "ollama",
 }
 
 export enum TTSProvider {
-  ElevenLabs = "elevenlabs",
-  Google = "google",
+  Gemini = "gemini",
   Kokoro = "kokoro",
 }
 
@@ -31,11 +27,38 @@ interface RedditConfig {
   userAgent: string;
 }
 
-interface TTSConfig {
-  provider: TTSProvider;
+interface BaseTTSConfig {
   voice: string;
   apiKey?: string;
+  model?: string;
+  baseUrl?: string;
 }
+
+interface GeminiTTSConfig extends BaseTTSConfig {
+  provider: TTSProvider.Gemini;
+  apiKey: string;
+}
+
+interface KokoroTTSConfig extends BaseTTSConfig {
+  provider: TTSProvider.Kokoro;
+}
+
+interface GeminiTTSConfig {
+  provider: TTSProvider.Gemini;
+  voice: string;
+  apiKey: string;
+  model?: string;
+}
+
+interface KokoroTTSConfig {
+  provider: TTSProvider.Kokoro;
+  voice: string;
+  model?: string;
+  baseUrl?: string;
+  apiKey?: string;
+}
+
+export type TTSConfig = GeminiTTSConfig | KokoroTTSConfig;
 
 interface LLMConfig {
   provider: LLMProvider;
@@ -61,6 +84,8 @@ function requireEnv(name: string): string {
     throw new Error(message);
   }
 
+  logger.debug({ name }, "Loaded required environment variable");
+
   return value;
 }
 
@@ -79,8 +104,41 @@ function requireEnum<T extends Record<string, string>>(
     throw new Error(message);
   }
 
+  logger.debug({ name, value }, "Validated enum environment variable");
+
   return value as T[keyof T];
 }
+
+function loadTTSConfig(): TTSConfig {
+  const provider = requireEnum("TTS_PROVIDER", TTSProvider);
+
+  switch (provider) {
+    case TTSProvider.Gemini:
+      return {
+        provider,
+        voice: requireEnv("TTS_VOICE"),
+        apiKey: requireEnv("TTS_API_KEY"),
+        model: process.env.TTS_MODEL,
+        baseUrl: process.env.TTS_BASE_URL,
+      };
+
+    case TTSProvider.Kokoro:
+      return {
+        provider,
+        voice: process.env.TTS_VOICE ?? "af_alloy",
+        apiKey: process.env.TTS_API_KEY,
+        model: process.env.TTS_MODEL,
+        baseUrl: process.env.TTS_BASE_URL,
+      };
+
+    default: {
+      const exhaustiveCheck: never = provider;
+      throw new Error(`Unsupported TTS provider: ${exhaustiveCheck}`);
+    }
+  }
+}
+
+logger.debug("Loading R2V configuration");
 
 const subreddits = requireEnv("REDDIT_SUBREDDITS")
   .split(",")
@@ -111,6 +169,8 @@ const subreddits = requireEnv("REDDIT_SUBREDDITS")
     };
   });
 
+logger.debug({ subreddits }, "Parsed subreddit configuration");
+
 export const config: R2VConfig = {
   video: {
     width: Number(process.env.VIDEO_WIDTH ?? 1080),
@@ -125,15 +185,33 @@ export const config: R2VConfig = {
     userAgent: process.env.REDDIT_USER_AGENT ?? "R2V/0.1.0",
   },
 
-  tts: {
-    provider: requireEnum("TTS_PROVIDER", TTSProvider),
-    voice: process.env.TTS_VOICE ?? "",
-    apiKey: process.env.TTS_API_KEY,
-  },
+  tts: loadTTSConfig(),
 
   llm: {
     provider: requireEnum("LLM_PROVIDER", LLMProvider),
-    model: process.env.LLM_MODEL ?? "gemini-2.5-flash-lite",
+    model: process.env.LLM_MODEL ?? "gemini-3.5-flash-lite",
     apiKey: requireEnv("LLM_API_KEY"),
   },
 };
+
+logger.debug(
+  {
+    video: config.video,
+    reddit: {
+      subredditCount: config.reddit.subreddits.length,
+      userAgent: config.reddit.userAgent,
+    },
+    tts: {
+      provider: config.tts.provider,
+      voice: config.tts.voice,
+      model: config.tts.model,
+      hasApiKey: Boolean(config.tts.apiKey),
+    },
+    llm: {
+      provider: config.llm.provider,
+      model: config.llm.model,
+      hasApiKey: Boolean(config.llm.apiKey),
+    },
+  },
+  "R2V configuration loaded",
+);

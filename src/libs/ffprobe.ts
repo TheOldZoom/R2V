@@ -30,9 +30,13 @@ export class FFprobe {
 
   constructor(executable = "ffprobe") {
     this.executable = executable;
+
+    logger.debug({ executable }, "FFprobe instance created");
   }
 
   async probe(input: string): Promise<VideoMetadata> {
+    logger.debug({ input }, "FFprobe.probe called");
+
     const parsed = await this.run(input);
 
     const videoStream = parsed.streams.find(
@@ -40,6 +44,15 @@ export class FFprobe {
     );
     const audioStream = parsed.streams.find(
       (stream) => stream.codec_type === "audio",
+    );
+
+    logger.debug(
+      {
+        streamCount: parsed.streams.length,
+        hasVideoStream: Boolean(videoStream),
+        hasAudioStream: Boolean(audioStream),
+      },
+      "FFprobe stream detection",
     );
 
     if (!videoStream) {
@@ -54,21 +67,32 @@ export class FFprobe {
       throw new Error(`Could not determine duration for: ${input}`);
     }
 
-    return {
+    const metadata: VideoMetadata = {
       durationSeconds: duration,
       width: videoStream.width ?? 0,
       height: videoStream.height ?? 0,
       fps: parseFrameRate(videoStream.r_frame_rate),
       hasAudio: Boolean(audioStream),
     };
+
+    logger.debug({ input, metadata }, "FFprobe.probe complete");
+
+    return metadata;
   }
 
   async duration(input: string): Promise<number> {
+    logger.debug({ input }, "FFprobe.duration called");
+
     const parsed = await this.run(input);
 
     const formatDuration = Number(parsed.format.duration ?? 0);
 
     if (Number.isFinite(formatDuration) && formatDuration > 0) {
+      logger.debug(
+        { input, duration: formatDuration, source: "format" },
+        "FFprobe.duration resolved",
+      );
+
       return formatDuration;
     }
 
@@ -77,8 +101,18 @@ export class FFprobe {
       .find((value) => Number.isFinite(value) && value > 0);
 
     if (streamDuration === undefined) {
+      logger.error(
+        { input },
+        "FFprobe could not determine duration from format or streams",
+      );
+
       throw new Error(`Could not determine duration for: ${input}`);
     }
+
+    logger.debug(
+      { input, duration: streamDuration, source: "stream" },
+      "FFprobe.duration resolved",
+    );
 
     return streamDuration;
   }
@@ -102,6 +136,8 @@ export class FFprobe {
       "Starting FFprobe",
     );
 
+    const startedAt = Date.now();
+
     const process = Bun.spawn([this.executable, ...args], {
       stdout: "pipe",
       stderr: "pipe",
@@ -110,6 +146,15 @@ export class FFprobe {
     const stdout = await new Response(process.stdout).text();
     const stderr = await new Response(process.stderr).text();
     const exitCode = await process.exited;
+
+    logger.debug(
+      {
+        exitCode,
+        durationMs: Date.now() - startedAt,
+        stdoutBytes: stdout.length,
+      },
+      "FFprobe process exited",
+    );
 
     if (exitCode !== 0) {
       logger.error(
@@ -124,7 +169,14 @@ export class FFprobe {
     }
 
     try {
-      return JSON.parse(stdout) as FFprobeOutput;
+      const parsed = JSON.parse(stdout) as FFprobeOutput;
+
+      logger.debug(
+        { streamCount: parsed.streams?.length ?? 0 },
+        "Parsed FFprobe JSON output",
+      );
+
+      return parsed;
     } catch (error) {
       logger.error(
         {

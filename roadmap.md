@@ -36,13 +36,13 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ## Phase 3 — AI
 
-- [ ] Create LLM provider interface
-- [ ] Add first LLM provider
-- [ ] Generate narration scripts
-- [ ] Create TTS provider interface
-- [ ] Add first TTS provider
-- [ ] Generate voice-over audio
-- [ ] Combine narration with video
+- [x] Create LLM provider interface
+- [x] Add first LLM provider
+- [x] Generate narration scripts
+- [x] Create TTS provider interface
+- [x] Add first TTS provider
+- [x] Generate voice-over audio
+- [x] Combine narration with video
 
 **Goal:** Give R2V a piece of text and get a narrated video.
 
