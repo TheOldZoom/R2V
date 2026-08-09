@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export enum LLMProvider {
   Gemini = "gemini",
   Groq = "groq",
@@ -24,16 +26,21 @@ interface RedditSubreddit {
 
 interface RedditConfig {
   subreddits: RedditSubreddit[];
+  clientId: string;
+  clientSecret: string;
+  userAgent: string;
 }
 
 interface TTSConfig {
   provider: TTSProvider;
   voice: string;
+  apiKey?: string;
 }
 
 interface LLMConfig {
   provider: LLMProvider;
   model: string;
+  apiKey: string;
 }
 
 export interface R2VConfig {
@@ -47,7 +54,11 @@ function requireEnv(name: string): string {
   const value = process.env[name];
 
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+    const message = `Missing required environment variable: ${name}`;
+
+    logger.error(message);
+
+    throw new Error(message);
   }
 
   return value;
@@ -58,11 +69,14 @@ function requireEnum<T extends Record<string, string>>(
   enumObject: T,
 ): T[keyof T] {
   const value = requireEnv(name);
+  const values = Object.values(enumObject);
 
-  if (!Object.values(enumObject).includes(value)) {
-    throw new Error(
-      `Invalid value for ${name}: "${value}". Expected one of: ${Object.values(enumObject).join(", ")}`,
-    );
+  if (!values.includes(value)) {
+    const message = `Invalid value for ${name}: "${value}". Expected one of: ${values.join(", ")}`;
+
+    logger.error(message);
+
+    throw new Error(message);
   }
 
   return value as T[keyof T];
@@ -74,13 +88,21 @@ const subreddits = requireEnv("REDDIT_SUBREDDITS")
     const [name, weightString] = entry.split(":");
 
     if (!name || !weightString) {
-      throw new Error(`Invalid subreddit configuration: "${entry}"`);
+      const message = `Invalid subreddit configuration: "${entry}"`;
+
+      logger.error(message);
+
+      throw new Error(message);
     }
 
     const weight = Number(weightString);
 
     if (!Number.isFinite(weight) || weight < 0) {
-      throw new Error(`Invalid subreddit weight: "${entry}"`);
+      const message = `Invalid subreddit weight: "${entry}"`;
+
+      logger.error(message);
+
+      throw new Error(message);
     }
 
     return {
@@ -98,15 +120,20 @@ export const config: R2VConfig = {
 
   reddit: {
     subreddits,
+    clientId: requireEnv("REDDIT_CLIENT_ID"),
+    clientSecret: requireEnv("REDDIT_CLIENT_SECRET"),
+    userAgent: process.env.REDDIT_USER_AGENT ?? "R2V/0.1.0",
   },
 
   tts: {
     provider: requireEnum("TTS_PROVIDER", TTSProvider),
     voice: process.env.TTS_VOICE ?? "",
+    apiKey: process.env.TTS_API_KEY,
   },
 
   llm: {
     provider: requireEnum("LLM_PROVIDER", LLMProvider),
     model: process.env.LLM_MODEL ?? "gemini-2.5-flash-lite",
+    apiKey: requireEnv("LLM_API_KEY"),
   },
 };

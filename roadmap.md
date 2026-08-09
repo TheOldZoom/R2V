@@ -6,9 +6,9 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 - [x] Set up Bun + TypeScript project
 - [x] Set up project structure
-- [ ] Add configuration system
-- [ ] Add environment variable handling
-- [ ] Add logging
+- [x] Add configuration system
+- [x] Add environment variable handling
+- [x] Add logging
 - [ ] Add FFmpeg integration
 - [ ] Create video rendering module
 - [ ] Add a test background video
