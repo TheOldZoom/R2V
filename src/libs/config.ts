@@ -36,16 +36,22 @@ export interface WhisperCaptionConfig {
   language?: string;
 }
 
-interface RedditSubreddit {
+export interface RedditSubreddit {
   name: string;
   weight: number;
 }
 
-interface RedditConfig {
+export interface RedditConfig {
   subreddits: RedditSubreddit[];
-  clientId: string;
-  clientSecret: string;
   userAgent: string;
+  listing: "hot" | "new" | "top";
+  fetchLimit: number;
+  minBodyLength: number;
+  blockedTerms: string[];
+  chocodataApiKey?: string;
+  chocodataBaseUrl: string;
+  topTimeframe: "day" | "week" | "month" | "year" | "all";
+  detailLimit: number;
 }
 
 interface BaseTTSConfig {
@@ -194,6 +200,23 @@ const subreddits = requireEnv("REDDIT_SUBREDDITS")
 
 logger.debug({ subreddits }, "Parsed subreddit configuration");
 
+const redditListing = process.env.REDDIT_LISTING ?? "hot";
+const redditTopTimeframe = process.env.REDDIT_TOP_TIMEFRAME ?? "week";
+
+if (
+  redditListing !== "hot" &&
+  redditListing !== "new" &&
+  redditListing !== "top"
+) {
+  throw new Error(
+    `Invalid REDDIT_LISTING: "${redditListing}". Expected hot, new, or top.`,
+  );
+}
+
+if (!["day", "week", "month", "year", "all"].includes(redditTopTimeframe)) {
+  throw new Error(`Invalid REDDIT_TOP_TIMEFRAME: "${redditTopTimeframe}"`);
+}
+
 export const config: R2VConfig = {
   video: {
     width: Number(process.env.VIDEO_WIDTH ?? 1080),
@@ -224,9 +247,19 @@ export const config: R2VConfig = {
 
   reddit: {
     subreddits,
-    clientId: requireEnv("REDDIT_CLIENT_ID"),
-    clientSecret: requireEnv("REDDIT_CLIENT_SECRET"),
     userAgent: process.env.REDDIT_USER_AGENT ?? "R2V/0.1.0",
+    listing: redditListing,
+    fetchLimit: Number(process.env.REDDIT_FETCH_LIMIT ?? 50),
+    minBodyLength: Number(process.env.REDDIT_MIN_BODY_LENGTH ?? 80),
+    blockedTerms: (process.env.REDDIT_BLOCKED_TERMS ?? "")
+      .split(",")
+      .map((term) => term.trim())
+      .filter(Boolean),
+    chocodataApiKey: process.env.CHOCODATA_API_KEY,
+    chocodataBaseUrl:
+      process.env.CHOCODATA_BASE_URL ?? "https://api.chocodata.com",
+    topTimeframe: redditTopTimeframe as RedditConfig["topTimeframe"],
+    detailLimit: Number(process.env.CHOCODATA_DETAIL_LIMIT ?? 10),
   },
 
   tts: loadTTSConfig(),
@@ -244,6 +277,11 @@ logger.debug(
     reddit: {
       subredditCount: config.reddit.subreddits.length,
       userAgent: config.reddit.userAgent,
+      listing: config.reddit.listing,
+      fetchLimit: config.reddit.fetchLimit,
+      blockedTermCount: config.reddit.blockedTerms.length,
+      chocodataBaseUrl: config.reddit.chocodataBaseUrl,
+      hasChocodataApiKey: Boolean(config.reddit.chocodataApiKey),
     },
     captions: config.captions,
     whisperCaptions: {

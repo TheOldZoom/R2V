@@ -9,7 +9,8 @@ export interface NarrationSource {
 const NARRATION_SYSTEM_PROMPT = `You write narration scripts for short-form vertical videos based on Reddit posts.
 Rewrite the story as a spoken narration script: natural, conversational sentences meant to be read aloud.
 Do not include markdown, headers, or stage directions. Do not mention Reddit, upvotes, or usernames.
-Keep it tight and engaging — cut anything that doesn't move the story forward.`;
+Keep it tight and engaging — cut anything that doesn't move the story forward.
+End the narration something like: "What do you think about this? Leave a comment, like this video and see you in the next one."`;
 
 export async function generateNarrationScript(
   llm: LLMProviderClient,

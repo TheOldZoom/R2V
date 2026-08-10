@@ -13,21 +13,15 @@ R2V is an open-source tool that automatically turns Reddit stories into short-fo
 - LLM
 - TTS
 
-# Whisper captions
+## Reddit source
 
-R2V sends the generated narration to your Whisper server and uses its
-word-level timings as the captions. Configure your docker-whisper server with
-`WHISPER_WORD_TIMESTAMPS=true`, then set these R2V variables if necessary:
-
-```text
-WHISPER_BASE_URL=http://127.0.0.1:9000
-WHISPER_API_KEY=optional-server-token
-WHISPER_MODEL=whisper-1
-WHISPER_LANGUAGE=en
-```
-
-`CAPTION_TIMING_OFFSET_SECONDS` can make a small global adjustment (for
-example, `-0.12` renders every caption 120 ms earlier).
+R2V uses Chocodata for Reddit post retrieval, so the pipeline does not need
+Reddit OAuth credentials. Set `CHOCODATA_API_KEY` in `.env`; the key is sent
+only to Chocodata. `REDDIT_LISTING` supports `hot`, `new`, and `top`, while
+`REDDIT_TOP_TIMEFRAME` controls the `top` window.
+The listing is followed by detail requests for up to `CHOCODATA_DETAIL_LIMIT`
+highest-ranked posts so story bodies/comments are available without fetching
+every post in full.
 
 # License
 

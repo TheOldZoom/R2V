@@ -4,11 +4,19 @@ import type { FFmpeg, FFmpegInput, FFmpegProgress } from "./ffmpeg";
 import { ffprobe } from "./ffprobe";
 import { logger } from "./logger";
 
+export interface MusicReverbOptions {
+  roomSize?: number;
+  damping?: number;
+  wetGainDb?: number;
+  dryGainDb?: number;
+}
+
 export interface RenderOptions {
   backgroundVideo: string;
   audio?: string;
   music?: string;
   musicVolume?: number;
+  musicReverb?: boolean | MusicReverbOptions;
   captions?: string;
   captionFontFile?: string;
   output: string;
@@ -36,6 +44,50 @@ export interface RenderMetadata {
 
 const PROGRESS_LOG_STEP = 10;
 const DEFAULT_MUSIC_VOLUME = 0.08;
+const DEFAULT_MUSIC_REVERB: Required<MusicReverbOptions> = {
+  roomSize: 0.6,
+  damping: 0.4,
+  wetGainDb: -3,
+  dryGainDb: 0,
+};
+
+function dbToLinear(db: number): number {
+  return 10 ** (db / 20);
+}
+
+function buildMusicFilter(
+  inputLabel: string,
+  outputLabel: string,
+  volume: number,
+  reverb: boolean | MusicReverbOptions | undefined,
+): string {
+  if (!reverb) {
+    return `${inputLabel}volume=${volume}${outputLabel}`;
+  }
+
+  const r = { ...DEFAULT_MUSIC_REVERB, ...(reverb === true ? {} : reverb) };
+
+  const spreadMs = [40, 90, 150, 230].map((ms) =>
+    Math.round(ms * (0.5 + r.roomSize)),
+  );
+  const decays = [0.35, 0.28, 0.2, 0.15].map((d) =>
+    (d * (1 - r.damping * 0.6)).toFixed(3),
+  );
+
+  const dry = "musicdry";
+  const wetPre = "musicwetpre";
+  const wet = "musicwet";
+  const dryGained = "musicdrygained";
+  const mixed = "musicmixed";
+
+  return [
+    `${inputLabel}asplit=2[${dry}][${wetPre}]`,
+    `[${wetPre}]aecho=0.8:0.7:${spreadMs.join("|")}:${decays.join("|")},volume=${dbToLinear(r.wetGainDb)}[${wet}]`,
+    `[${dry}]volume=${dbToLinear(r.dryGainDb)}[${dryGained}]`,
+    `[${dryGained}][${wet}]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[${mixed}]`,
+    `[${mixed}]volume=${volume}${outputLabel}`,
+  ].join(";");
+}
 
 export class VideoRenderer {
   constructor(private readonly ffmpeg: FFmpeg) {
@@ -55,6 +107,7 @@ export class VideoRenderer {
         captions: options.captions,
         captionFontFile: options.captionFontFile,
         musicVolume: options.musicVolume ?? DEFAULT_MUSIC_VOLUME,
+        musicReverb: options.musicReverb ?? false,
         output: options.output,
         trim: options.trim,
         fit,
@@ -172,7 +225,12 @@ export class VideoRenderer {
 
       if (audioInputIndex !== null) {
         filterComplex.push(
-          `[${musicInputIndex}:a]volume=${musicVolume}[music]`,
+          buildMusicFilter(
+            `[${musicInputIndex}:a]`,
+            "[music]",
+            musicVolume,
+            options.musicReverb,
+          ),
         );
         filterComplex.push(
           `[${audioInputIndex}:a][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`,
@@ -180,14 +238,26 @@ export class VideoRenderer {
         audioMapLabel = "[aout]";
       } else if (backgroundMeta.hasAudio) {
         filterComplex.push(
-          `[${musicInputIndex}:a]volume=${musicVolume}[music]`,
+          buildMusicFilter(
+            `[${musicInputIndex}:a]`,
+            "[music]",
+            musicVolume,
+            options.musicReverb,
+          ),
         );
         filterComplex.push(
           `[0:a][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`,
         );
         audioMapLabel = "[aout]";
       } else {
-        filterComplex.push(`[${musicInputIndex}:a]volume=${musicVolume}[aout]`);
+        filterComplex.push(
+          buildMusicFilter(
+            `[${musicInputIndex}:a]`,
+            "[aout]",
+            musicVolume,
+            options.musicReverb,
+          ),
+        );
         audioMapLabel = "[aout]";
       }
 

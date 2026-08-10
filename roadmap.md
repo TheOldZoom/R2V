@@ -63,53 +63,38 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ## Phase 5 — Reddit
 
-- [ ] Add Reddit API integration
-- [ ] Fetch posts
-- [ ] Support subreddit selection
-- [ ] Filter deleted/invalid posts
-- [ ] Filter unwanted content
-- [ ] Score stories
-- [ ] Select stories automatically
-- [ ] Extract title and body
-- [ ] Process Reddit stories through the AI pipeline
+- [x] Add Reddit API integration
+- [x] Fetch posts
+- [x] Support subreddit selection
+- [x] Filter deleted/invalid posts
+- [x] Filter unwanted content
+- [x] Score stories
+- [x] Select stories automatically
+- [x] Extract title and body
+- [x] Process Reddit stories through the AI pipeline
 
 **Goal:** R2V can automatically turn a Reddit post into a finished video.
 
 ---
 
-## Phase 6 — Templates
+## Phase 6 — Automation
 
-- [ ] Create video template system
-- [ ] Support different background styles
-- [ ] Support different caption styles
-- [ ] Support different narration styles
-- [ ] Add intro/hook templates
-- [ ] Add music
-- [ ] Add configurable effects
-- [ ] Add template configuration files
-
-**Goal:** Generate different types of videos without changing the code.
-
----
-
-## Phase 7 — Automation
-
-- [ ] Generate multiple videos
-- [ ] Add job queue
-- [ ] Add job status tracking
-- [ ] Add automatic retries
-- [ ] Add generation history
-- [ ] Add temporary file cleanup
-- [ ] Add concurrency controls
-- [ ] Add scheduled generation
-- [ ] Improve error handling
-- [ ] Improve logging
+- [x] Generate multiple videos
+- [x] Add job queue
+- [x] Add job status tracking
+- [x] Add automatic retries
+- [x] Add generation history
+- [x] Add temporary file cleanup
+- [x] Add concurrency controls
+- [x] Add scheduled generation
+- [x] Improve error handling
+- [x] Improve logging
 
 **Goal:** R2V can run unattended and reliably generate videos.
 
 ---
 
-## Phase 8 — Publishing
+## Phase 7 — Publishing
 
 - [ ] Create publishing provider interface
 - [ ] Add OAuth account connections
@@ -126,7 +111,7 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ---
 
-## Phase 9 — Management
+## Phase 8 — Management
 
 - [ ] Add database
 - [ ] Store stories
@@ -141,7 +126,7 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ---
 
-## Phase 10 — Web Dashboard
+## Phase 9 — Web Dashboard
 
 - [ ] Build web dashboard
 - [ ] View generated videos
@@ -157,7 +142,7 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ---
 
-## Phase 11 — Distribution
+## Phase 10 — Distribution
 
 - [ ] Docker support
 - [ ] Docker Compose setup
