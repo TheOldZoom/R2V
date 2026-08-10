@@ -15,6 +15,28 @@ interface VideoConfig {
   fps: number;
 }
 
+export interface CaptionsConfig {
+  style: "bold" | "minimal";
+  fontFamily: string;
+  /** Optional custom .ttf/.otf font file for FFmpeg/libass. */
+  fontFile?: string;
+  fontSize: number;
+  primaryColor: string;
+  secondaryColor: string;
+  outlineColor: string;
+  marginBottom: number;
+  maxWordsPerCaption: number;
+  animated: boolean;
+  timingOffsetSeconds: number;
+}
+
+export interface WhisperCaptionConfig {
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  language?: string;
+}
+
 interface RedditSubreddit {
   name: string;
   weight: number;
@@ -68,6 +90,8 @@ interface LLMConfig {
 
 export interface R2VConfig {
   video: VideoConfig;
+  captions: CaptionsConfig;
+  whisperCaptions: WhisperCaptionConfig;
   reddit: RedditConfig;
   tts: TTSConfig;
   llm: LLMConfig;
@@ -178,6 +202,27 @@ export const config: R2VConfig = {
     fps: Number(process.env.VIDEO_FPS ?? 30),
   },
 
+  captions: {
+    style: process.env.CAPTION_STYLE === "minimal" ? "minimal" : "bold",
+    fontFamily: process.env.CAPTION_FONT_FAMILY ?? "Arial",
+    fontFile: process.env.CAPTION_FONT_FILE,
+    fontSize: Number(process.env.CAPTION_FONT_SIZE ?? 72),
+    primaryColor: process.env.CAPTION_PRIMARY_COLOR ?? "#FFD700",
+    secondaryColor: process.env.CAPTION_SECONDARY_COLOR ?? "#FFFFFF",
+    outlineColor: process.env.CAPTION_OUTLINE_COLOR ?? "#000000",
+    marginBottom: Number(process.env.CAPTION_MARGIN_BOTTOM ?? 220),
+    maxWordsPerCaption: Number(process.env.CAPTION_MAX_WORDS ?? 4),
+    animated: process.env.CAPTION_ANIMATED !== "false",
+    timingOffsetSeconds: Number(process.env.CAPTION_TIMING_OFFSET_SECONDS ?? 0),
+  },
+
+  whisperCaptions: {
+    baseUrl: process.env.WHISPER_BASE_URL ?? "http://127.0.0.1:9000",
+    apiKey: process.env.WHISPER_API_KEY,
+    model: process.env.WHISPER_MODEL ?? "whisper-1",
+    language: process.env.WHISPER_LANGUAGE,
+  },
+
   reddit: {
     subreddits,
     clientId: requireEnv("REDDIT_CLIENT_ID"),
@@ -200,6 +245,13 @@ logger.debug(
     reddit: {
       subredditCount: config.reddit.subreddits.length,
       userAgent: config.reddit.userAgent,
+    },
+    captions: config.captions,
+    whisperCaptions: {
+      baseUrl: config.whisperCaptions.baseUrl,
+      model: config.whisperCaptions.model,
+      language: config.whisperCaptions.language,
+      hasApiKey: Boolean(config.whisperCaptions.apiKey),
     },
     tts: {
       provider: config.tts.provider,

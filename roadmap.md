@@ -50,12 +50,12 @@ R2V is built incrementally. Each phase should leave the project in a usable stat
 
 ## Phase 4 — Captions
 
-- [ ] Generate subtitle timestamps
-- [ ] Render subtitles with FFmpeg
-- [ ] Add caption styles
-- [ ] Add animated captions
-- [ ] Add word/phrase highlighting
-- [ ] Make caption styles configurable
+- [x] Generate subtitle timestamps
+- [x] Render subtitles with FFmpeg
+- [x] Add caption styles
+- [x] Add animated captions
+- [x] Add word/phrase highlighting
+- [x] Make caption styles configurable
 
 **Goal:** Produce videos with properly synchronized captions.
 

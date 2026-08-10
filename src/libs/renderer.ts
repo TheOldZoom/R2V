@@ -1,4 +1,5 @@
 import { config } from "./config";
+import { dirname } from "node:path";
 import type { FFmpeg, FFmpegInput, FFmpegProgress } from "./ffmpeg";
 import { ffprobe } from "./ffprobe";
 import { logger } from "./logger";
@@ -8,6 +9,8 @@ export interface RenderOptions {
   audio?: string;
   music?: string;
   musicVolume?: number;
+  captions?: string;
+  captionFontFile?: string;
   output: string;
   trim?: {
     start?: number;
@@ -22,6 +25,8 @@ export interface RenderMetadata {
   backgroundVideo: string;
   audio?: string;
   music?: string;
+  captions?: string;
+  captionFontFile?: string;
   width: number;
   height: number;
   fps: number;
@@ -47,6 +52,8 @@ export class VideoRenderer {
         backgroundVideo: options.backgroundVideo,
         audio: options.audio,
         music: options.music,
+        captions: options.captions,
+        captionFontFile: options.captionFontFile,
         musicVolume: options.musicVolume ?? DEFAULT_MUSIC_VOLUME,
         output: options.output,
         trim: options.trim,
@@ -60,6 +67,8 @@ export class VideoRenderer {
       options.backgroundVideo,
       options.audio,
       options.music,
+      options.captions,
+      options.captionFontFile,
     ].filter((value): value is string => Boolean(value))) {
       const exists = await Bun.file(path).exists();
 
@@ -138,14 +147,27 @@ export class VideoRenderer {
       fit === "cover"
         ? `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`
         : `scale=${width}:${height}`;
+    const subtitleFilter = options.captions
+      ? [
+          `filename='${escapeSubtitlePath(options.captions)}'`,
+          ...(options.captionFontFile
+            ? [
+                `fontsdir='${escapeSubtitlePath(dirname(options.captionFontFile))}'`,
+              ]
+            : []),
+        ].join(":")
+      : null;
+    const videoFilter = subtitleFilter
+      ? `${scaleFilter},subtitles=${subtitleFilter}`
+      : scaleFilter;
 
-    logger.debug({ scaleFilter, fit }, "Computed scale filter");
+    logger.debug({ videoFilter, fit }, "Computed video filter");
 
     const musicVolume = options.musicVolume ?? DEFAULT_MUSIC_VOLUME;
     const args: string[] = [];
 
     if (musicInputIndex !== null) {
-      const filterComplex = [`[0:v]${scaleFilter}[vout]`];
+      const filterComplex = [`[0:v]${videoFilter}[vout]`];
       let audioMapLabel: string;
 
       if (audioInputIndex !== null) {
@@ -178,7 +200,7 @@ export class VideoRenderer {
         audioMapLabel,
       );
     } else {
-      args.push("-vf", scaleFilter);
+      args.push("-vf", videoFilter);
 
       if (audioInputIndex !== null) {
         args.push("-map", "0:v:0", "-map", `${audioInputIndex}:a:0`);
@@ -247,6 +269,8 @@ export class VideoRenderer {
       backgroundVideo: options.backgroundVideo,
       audio: options.audio,
       music: options.music,
+      captions: options.captions,
+      captionFontFile: options.captionFontFile,
       width,
       height,
       fps,
@@ -271,4 +295,8 @@ export class VideoRenderer {
 
     return metadata;
   }
+}
+
+function escapeSubtitlePath(path: string): string {
+  return path.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\\'");
 }
