@@ -132,7 +132,6 @@ export async function createCaptionFile(options: {
   style?: CaptionStyle;
   audioPath?: string;
   offsetSeconds?: number;
-  /** Word captions and timings supplied by Whisper. */
   wordTimings?: CaptionWord[];
 }): Promise<CaptionDocument> {
   const captions = options.wordTimings?.length
@@ -148,7 +147,10 @@ export async function createCaptionFile(options: {
         options.style,
         {
           pauses: options.audioPath
-            ? await detectNarrationPauses(options.audioPath, options.durationSeconds)
+            ? await detectNarrationPauses(
+                options.audioPath,
+                options.durationSeconds,
+              )
             : [],
           offsetSeconds: options.offsetSeconds,
         },
@@ -181,8 +183,14 @@ function createCaptionDocumentFromWords(
     throw new Error("No valid Whisper caption words were provided");
   }
 
-  const phrases = groupPhrases(words, resolveCaptionStyle(style ?? {}).maxWordsPerCaption);
-  logger.info({ wordCount: words.length, phraseCount: phrases.length }, "Created captions from Whisper word timings");
+  const phrases = groupPhrases(
+    words,
+    resolveCaptionStyle(style ?? {}).maxWordsPerCaption,
+  );
+  logger.info(
+    { wordCount: words.length, phraseCount: phrases.length },
+    "Created captions from Whisper word timings",
+  );
   return { words, phrases, durationSeconds };
 }
 

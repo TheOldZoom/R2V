@@ -18,7 +18,6 @@ interface VideoConfig {
 export interface CaptionsConfig {
   style: "bold" | "minimal";
   fontFamily: string;
-  /** Optional custom .ttf/.otf font file for FFmpeg/libass. */
   fontFile?: string;
   fontSize: number;
   primaryColor: string;
